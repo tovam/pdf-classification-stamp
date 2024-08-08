@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Classification Stamp</title>
+  <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCI+CiAgPCEtLSBQYXBlciBzaGVldCAtLT4KICA8cmVjdCB4PSIyMCIgeT0iMjAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI4MCIgcng9IjUiIHJ5PSI1IiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMyIgLz4KICA8IS0tIEZvbGRlZCBjb3JuZXIgb2YgdGhlIHBhcGVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iNjAsMjAgNzYsMjEgNjAsNDAiIGZpbGw9IiNlZWVlZWUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIzIiAvPgogIAogIDwhLS0gU21hbGxlciBTdGFtcCAtLT4KICA8Y2lyY2xlIGN4PSI2MCIgY3k9IjcwIiByPSIyNSIgZmlsbD0iI2ZmMDAwMCIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjIiIC8+CiAgPGNpcmNsZSBjeD0iNjAiIGN5PSI3MCIgcj0iMTUiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIC8+CiAgCiAgPCEtLSBTdGFtcCBpbm5lciBkZWNvcmF0aW9uIC0tPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iNzAiIHI9IjUiIGZpbGw9IiNmZjAwMDAiIC8+CiAgCiAgPCEtLSBQYXBlciBzaGFkb3cgLS0+CiAgPHJlY3QgeD0iMjMiIHk9IjIzIiB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHJ4PSI1IiByeT0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4yIiBzdHJva2Utd2lkdGg9IjUiIC8+Cjwvc3ZnPgo=" />
+  <style>
+    html{
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f0f0f0;
+      height: 100%;
+    }
+    #app{
+      height: 100%;
+    }
+    #app-content{
+      height: 100%;
+    }
+    .file-line {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+      padding: 5px;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .file-line span, .file-line select, .file-line button, .file-line input {
+      margin-left: 10px;
+    }
+    .filename {
+      flex: 1;
+      word-break: break-all;
+    }
+    .drag-drop-area {
+      border: 2px dashed #ccc;
+      padding: 40px;
+      text-align: center;
+      margin: 20px 0;
+      background-color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .drag-drop-area.dragging {
+      background-color: #e0e0e0;
+    }
+    .file-info {
+      margin-left: 10px;
+    }
+    .preview-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      border-radius: 5px;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+    .file-line button.delete-btn {
+      background-color: red;
+    }
+    .file-line button.delete-btn:hover {
+      background-color: darkred;
+    }
+    .file-line button, .file-line select, .file-line input {
+      flex-shrink: 0;
+    }
+    .button-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .button:hover {
+      background-color: #0056b3;
+    }
+    .settings {
+      margin-top: 20px;
+      padding: 20px;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .settings input {
+      margin-top: 10px;
+      padding: 5px;
+      width: 100%;
+    }
+    .collision-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      border-radius: 5px;
+    }
+    .collision-modal h2 {
+      margin-top: 0;
+    }
+    .collision-modal button {
+      margin-right: 10px;
+    }
+    .disabled {
+      cursor: not-allowed;
+      background-color: #ddd !important;
+      color: #999 !important;
+    }
+    .disabled:hover {
+      background-color: #ddd !important;
+    }
+    .message {
+      margin: 20px;
+      padding: 20px;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .mark-all-container {
+      position: sticky;
+      bottom: 0px;
+      background-color: #f0f0f0;
+      padding: 20px;
+      opacity: 0.95;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="text/babel">
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+  
+    function App() {
+      const [files, setFiles] = React.useState([]);
+      const [dragging, setDragging] = React.useState(false);
+      const [preview, setPreview] = React.useState(null);
+      const [defaultText, setDefaultText] = React.useState(localStorage.getItem('defaultText') || "");
+      const [showSettings, setShowSettings] = React.useState(false);
+      const [collisions, setCollisions] = React.useState([]);
+      const [stampLocation, setStampLocation] = React.useState("top-right");
+      const [loading, setLoading] = React.useState(null);
+  
+      const handleFiles = async (event) => {
+        setLoading("Importing files...");
+        const newFiles = [];
+        const currentFileNames = files.map(f => f.file.name);
+        let newCollisions = [];
+        for (let file of event.target.files) {
+          if (file.name.endsWith('.zip')) {
+            const zip = await JSZip.loadAsync(file);
+            const zipFiles = [];
+            zip.forEach((relativePath, zipEntry) => {
+              if (!zipEntry.dir) {
+                zipFiles.push(zipEntry);
+              }
+            });
+  
+            for (let zipEntry of zipFiles) {
+              const content = await zipEntry.async('blob');
+              if (currentFileNames.includes(zipEntry.name)) {
+                newCollisions.push({
+                  file: new File([content], zipEntry.name),
+                  level: zipEntry.name.endsWith('.pdf') ? 'no marking' : '--- Not a PDF ---',
+                  size: zipEntry._data.uncompressedSize,
+                  text: zipEntry.name.endsWith('.pdf') ? defaultText : '--- Not a PDF ---',
+                  disabled: !zipEntry.name.endsWith('.pdf'),
+                  conflict: zipEntry.name
+                });
+              } else {
+                newFiles.push({
+                  file: new File([content], zipEntry.name),
+                  level: zipEntry.name.endsWith('.pdf') ? 'no marking' : '--- Not a PDF ---',
+                  size: zipEntry._data.uncompressedSize,
+                  text: zipEntry.name.endsWith('.pdf') ? defaultText : '--- Not a PDF ---',
+                  disabled: !zipEntry.name.endsWith('.pdf')
+                });
+              }
+            }
+          } else if (file.name.endsWith('.pdf')) {
+            if (currentFileNames.includes(file.name)) {
+              newCollisions.push({
+                file: file,
+                level: 'no marking',
+                size: file.size,
+                text: defaultText,
+                conflict: file.name
+              });
+            } else {
+              newFiles.push({ file, level: 'no marking', size: file.size, text: defaultText });
+            }
+          } else {
+            newFiles.push({ file, level: 'no marking', size: file.size, text: "--- Not a PDF ---", disabled: true });
+          }
+        }
+  
+        if (newCollisions.length > 0) {
+          setCollisions(newCollisions);
+        } else {
+          setFiles([...files, ...newFiles]);
+        }
+        setLoading(null);
+      };
+  
+      const handleLevelChange = (index, level) => {
+        const newFiles = [...files];
+        newFiles[index].level = level;
+        setFiles(newFiles);
+      };
+  
+      const handleTextChange = (index, event) => {
+        const newFiles = [...files];
+        newFiles[index].text = event.target.value;
+        setFiles(newFiles);
+      };
+  
+      const handleLocationChange = (index, event) => {
+        const newFiles = [...files];
+        newFiles[index].location = event.target.value;
+        setFiles(newFiles);
+      };
+  
+      const getColorByLevel = (level) => {
+        switch (level) {
+          case 'public':
+            return rgb(0, 1, 0);
+          case 'internal':
+            return rgb(1, 1, 0);
+          case 'restricted':
+            return rgb(1, 0.65, 0);
+          case 'confidential':
+            return rgb(1, 0, 0);
+          default:
+            return rgb(0, 0, 0);
+        }
+      };
+  
+      const applyStampToPage = async (page, text, level, location) => {
+        let fullText = `Classification: ${level}${text ? '\n' + text : ''}`;
+        fullText = fullText.replace('\\n', '\n');
+        const font = await page.doc.embedFont(StandardFonts.CourierBold);
+        const nlines = fullText.split('\n').length;
+  
+        const fontSize = 10;
+        const lineHeight = fontSize * 1.1;
+  
+        const textWidthExact = Math.max(...fullText.split('\n').map(line => font.widthOfTextAtSize(line, fontSize)));
+  
+        const stamp_height_padding = 4;
+        const stamp_width_padding = 5;
+        const stamp_height = lineHeight * nlines + 2 * stamp_height_padding + (fontSize - 20) * 1.4 + (24 - lineHeight);
+        const stamp_width = textWidthExact + 2 * stamp_width_padding;
+  
+        const { height, width } = page.getSize();
+        const color = getColorByLevel(level);
+  
+        let top, left;
+        switch (location) {
+          case 'top-left':
+            top = 10;
+            left = 10;
+            break;
+          case 'top-right':
+            top = 10;
+            left = -10;
+            break;
+          case 'bottom-left':
+            top = -10;
+            left = 10;
+            break;
+          case 'bottom-right':
+            top = -10;
+            left = -10;
+            break;
+          default:
+            top = 10;
+            left = -10;
+        }
+  
+        if (left < 0) left += width - stamp_width;
+        if (top < 0) top += height - stamp_height;
+  
+        page.drawRectangle({
+          x: left,
+          y: height - top - stamp_height,
+          width: textWidthExact + 2 * stamp_width_padding,
+          height: stamp_height,
+          color: color,
+          opacity: 0.3,
+        });
+  
+        page.drawText(fullText, {
+          x: left + stamp_width_padding,
+          y: height - top - fontSize - stamp_height_padding + 2,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+          opacity: 0.9,
+          lineHeight: lineHeight,
+        });
+      };
+  
+      const addStampToFile = async (fileObj) => {
+        const existingPdfBytes = await fileObj.file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+        const pages = pdfDoc.getPages();
+        const date = new Date().toUTCString();
+        const text = fileObj.text.replace('{now}', date);
+  
+        for (const page of pages) {
+          await applyStampToPage(page, text, fileObj.level, fileObj.location || 'top-right');
+        }
+  
+        return pdfDoc.save();
+      };
+  
+      const markAllFiles = async () => {
+        setLoading("Processing and stamping all files...");
+        const zip = new JSZip();
+        for (const fileObj of files) {
+          if (fileObj.disabled) {
+            zip.file(fileObj.file.name, await fileObj.file.arrayBuffer());
+          } else if (fileObj.level !== 'no marking') {
+            const pdfBytes = await addStampToFile(fileObj);
+            zip.file(fileObj.file.name, pdfBytes);
+          } else {
+            const pdfBytes = await fileObj.file.arrayBuffer();
+            zip.file(fileObj.file.name, pdfBytes);
+          }
+        }
+        const content = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'stamped_files.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setLoading(null);
+      };
+  
+      const handleDragOver = (event) => {
+        event.preventDefault();
+        setDragging(true);
+      };
+  
+      const handleDragLeave = () => {
+        setDragging(false);
+      };
+  
+      const handleDrop = async (event) => {
+        event.preventDefault();
+        setDragging(false);
+        setLoading("Importing files...");
+        const newFiles = [];
+        const currentFileNames = files.map(f => f.file.name);
+        let newCollisions = [];
+        for (let file of event.dataTransfer.files) {
+          if (file.name.endsWith('.zip')) {
+            const zip = await JSZip.loadAsync(file);
+            const zipFiles = [];
+            zip.forEach((relativePath, zipEntry) => {
+              if (!zipEntry.dir) {
+                zipFiles.push(zipEntry);
+              }
+            });
+  
+            for (let zipEntry of zipFiles) {
+              const content = await zipEntry.async('blob');
+              if (currentFileNames.includes(zipEntry.name)) {
+                newCollisions.push({
+                  file: new File([content], zipEntry.name),
+                  level: zipEntry.name.endsWith('.pdf') ? 'no marking' : '--- Not a PDF ---',
+                  size: zipEntry._data.uncompressedSize,
+                  text: zipEntry.name.endsWith('.pdf') ? defaultText : '--- Not a PDF ---',
+                  disabled: !zipEntry.name.endsWith('.pdf'),
+                  conflict: zipEntry.name
+                });
+              } else {
+                newFiles.push({
+                  file: new File([content], zipEntry.name),
+                  level: zipEntry.name.endsWith('.pdf') ? 'no marking' : '--- Not a PDF ---',
+                  size: zipEntry._data.uncompressedSize,
+                  text: zipEntry.name.endsWith('.pdf') ? defaultText : '--- Not a PDF ---',
+                  disabled: !zipEntry.name.endsWith('.pdf')
+                });
+              }
+            }
+          } else if (file.name.endsWith('.pdf')) {
+            if (currentFileNames.includes(file.name)) {
+              newCollisions.push({
+                file: file,
+                level: 'no marking',
+                size: file.size,
+                text: defaultText,
+                conflict: file.name
+              });
+            } else {
+              newFiles.push({ file, level: 'no marking', size: file.size, text: defaultText });
+            }
+          } else {
+            newFiles.push({ file, level: 'no marking', size: file.size, text: "--- Not a PDF ---", disabled: true });
+          }
+        }
+  
+        if (newCollisions.length > 0) {
+          setCollisions(newCollisions);
+        } else {
+          setFiles([...files, ...newFiles]);
+        }
+        setLoading(null);
+      };
+  
+      const showPreview = async (fileObj) => {
+        try {
+          const existingPdfBytes = await fileObj.file.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+          const pages = pdfDoc.getPages();
+          const date = new Date().toUTCString();
+          const text = fileObj.text.replace('{now}', date);
+  
+          if (fileObj.level !== 'no marking') {
+            for (const page of pages) {
+              await applyStampToPage(page, text, fileObj.level, fileObj.location || 'top-right');
+            }
+          }
+  
+          const pdfBytes = await pdfDoc.save();
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          setPreview(url);
+        } catch (error) {
+          console.error("Error showing preview:", error);
+        }
+      };
+  
+      const deleteFile = (index) => {
+        const newFiles = [...files];
+        newFiles.splice(index, 1);
+        setFiles(newFiles);
+      };
+  
+      const toggleSettings = () => {
+        setShowSettings(!showSettings);
+      };
+  
+      const saveSettings = () => {
+        localStorage.setItem('defaultText', defaultText);
+        alert("Settings saved!");
+        setShowSettings(false);
+      };
+  
+      const handleCollisionAction = (action) => {
+        const currentFileNames = files.map(f => f.file.name);
+        let updatedFiles = [...files];
+        
+        collisions.forEach(collision => {
+          const index = updatedFiles.findIndex(f => f.file.name === collision.conflict);
+          if (action === 'replace') {
+            if (index !== -1) {
+              updatedFiles[index] = collision;
+            } else {
+              updatedFiles.push(collision);
+            }
+          } else if (action === 'keep') {
+            let newName = collision.file.name;
+            while (currentFileNames.includes(newName)) {
+              newName = `copy_${newName}`;
+            }
+            updatedFiles.push({ ...collision, file: new File([collision.file], newName) });
+          }
+        });
+  
+        setFiles(updatedFiles);
+        setCollisions([]);
+      };
+  
+      return (
+        <div id="app-content"
+          onDragOver={handleDragOver} 
+          onDragLeave={handleDragLeave} 
+          onDrop={handleDrop}
+        >
+          <h1>PDF Classification Stamp</h1>
+          <div
+            className={`drag-drop-area ${dragging ? 'dragging' : ''}`}
+            onClick={() => document.getElementById('fileInput').click()} 
+          >
+            Drag & Drop files here or click to load<br/><br/>
+            Stamping is performed in your browser, your files never leave your computer
+          </div>
+          <input type="file" multiple onChange={handleFiles} id="fileInput" style={{ display: 'none' }} />
+          {files.length === 0 && (
+            <div className="message">
+              <p>No files loaded. Please upload PDF files to mark them with classification stamps. You can also upload a ZIP file containing multiple PDFs.</p>
+            </div>
+          )}
+          <div>
+            {files.map((fileObj, index) => (
+              <div key={index} className="file-line">
+                <span className="filename">{fileObj.file.name}</span>
+                <span className="file-info">{(fileObj.size / 1024).toFixed(2)} KB</span>
+                <select value={fileObj.level} onChange={(e) => handleLevelChange(index, e.target.value)} disabled={fileObj.disabled}>
+                  <option value="no marking">No Marking</option>
+                  <option value="public">Public</option>
+                  <option value="internal">Internal</option>
+                  <option value="restricted">Restricted</option>
+                  <option value="confidential">Confidential</option>
+                </select>
+                <input type="text" size={10} value={fileObj.text} onChange={(e) => handleTextChange(index, e)} disabled={fileObj.level === 'no marking' || fileObj.disabled} placeholder="Stamp text" />
+                <select value={fileObj.location || 'top-right'} onChange={(e) => handleLocationChange(index, e)} disabled={fileObj.disabled}>
+                  <option value="top-right">Top-Right</option>
+                  <option value="top-left">Top-Left</option>
+                  <option value="bottom-right">Bottom-Right</option>
+                  <option value="bottom-left">Bottom-Left</option>
+                </select>
+                <button className={`button ${fileObj.disabled ? 'disabled' : ''}`} onClick={() => showPreview(fileObj)} disabled={fileObj.disabled}>Preview</button>
+                <button className={`button ${fileObj.disabled ? 'disabled' : ''}`} onClick={() => addStampToFile(fileObj).then(blob => URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))).then(url => {
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = fileObj.file.name;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                })} disabled={fileObj.level === 'no marking' || fileObj.disabled}>Mark</button>
+                <button className={`delete-btn button`} onClick={() => deleteFile(index)}>Remove</button>
+              </div>
+            ))}
+          </div>
+          {files.length > 0 && (
+            <div className="button-container mark-all-container">
+              <button className="button" onClick={markAllFiles}>Mark {files.length} file{files.length > 1?'s':''}</button>
+            </div>
+          )}
+          {null && <button className="button" onClick={toggleSettings}>Settings</button>}
+          {showSettings && (
+            <div className="settings">
+              <h2>Settings</h2>
+              <label>
+                Default Editable Text:
+                <input type="text" value={defaultText} onChange={(e) => setDefaultText(e.target.value)} />
+              </label>
+              <button className="button" onClick={saveSettings}>Save Settings</button>
+            </div>
+          )}
+          {preview && (
+            <React.Fragment>
+              <div className="overlay" onClick={() => setPreview(null)}></div>
+              <div className="preview-modal" style={{width: '80%', height: '80%'}}>
+                <iframe src={preview} width="100%" height="100%"></iframe>
+                {/* <button className="button" onClick={() => setPreview(null)}>Close</button> */}
+              </div>
+            </React.Fragment>
+          )}
+          {collisions.length > 0 && (
+            <React.Fragment>
+              <div className="overlay"></div>
+              <div className="collision-modal">
+                <h2>Files Collision</h2>
+                <p>The following files have name collisions:</p>
+                <ul>
+                  {collisions.map((collision, index) => (
+                    <li key={index}>{collision.conflict}</li>
+                  ))}
+                </ul>
+                <button className="button" onClick={() => handleCollisionAction('keep')}>Rename new file{collisions.length>1?'s':''}</button>
+                <button className="button" onClick={() => handleCollisionAction('replace')}>Import and replace</button>
+              </div>
+            </React.Fragment>
+          )}
+          {loading && (
+            <React.Fragment>
+              <div className="overlay"></div>
+              <div className="collision-modal">
+                <h2>{loading}</h2>
+                <p>Please wait while the process completes.</p>
+              </div>
+            </React.Fragment>
+          )}
+        </div>
+      );
+    }
+  
+    ReactDOM.render(<App />, document.getElementById('app'));
+  </script>
+  
+  
+</body>
+</html>
